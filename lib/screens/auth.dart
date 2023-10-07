@@ -21,6 +21,7 @@ class _AuthScreenState extends State<AuthScreen> {
   bool _isLogin = true;
 
   String _emailInput = '';
+  String _usernameInput = '';
   String _passwordInput = '';
   File? _selectedImage;
   bool _isAuthenticating = false;
@@ -66,7 +67,7 @@ class _AuthScreenState extends State<AuthScreen> {
             .collection('users')
             .doc(userCredentials.user!.uid)
             .set({
-          'username': 'to be done',
+          'username': _usernameInput,
           'email': _emailInput,
           'image_url': imageUrl,
         });
@@ -139,6 +140,22 @@ class _AuthScreenState extends State<AuthScreen> {
                               _emailInput = newValue!;
                             },
                           ),
+                          if (!_isLogin)
+                            TextFormField(
+                              decoration:
+                                  const InputDecoration(labelText: 'Username'),
+                              autocorrect: false,
+                              enableSuggestions: false,
+                              validator: (value) {
+                                if (value == null || value.trim().length < 4) {
+                                  return 'Please enter at least 5 characters.';
+                                }
+                                return null;
+                              },
+                              onSaved: (newValue) {
+                                _usernameInput = newValue!;
+                              },
+                            ),
                           TextFormField(
                             decoration:
                                 const InputDecoration(labelText: 'Password'),
