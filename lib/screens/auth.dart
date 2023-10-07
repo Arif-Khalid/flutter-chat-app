@@ -1,4 +1,8 @@
+import 'dart:io';
+
 import 'package:chat_app/global.dart';
+import 'package:chat_app/widgets/user_image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -17,6 +21,7 @@ class _AuthScreenState extends State<AuthScreen> {
 
   String _emailInput = '';
   String _passwordInput = '';
+  File? _selectedImage;
 
   void _submit() async {
     final isValid = _formKey.currentState!.validate();
@@ -25,16 +30,34 @@ class _AuthScreenState extends State<AuthScreen> {
       return;
     }
 
+    if (!_isLogin && _selectedImage == null) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content:
+              Text('Please take a picture to continue with account creation'),
+        ),
+      );
+      return;
+    }
+
     _formKey.currentState!.save();
     try {
       if (_isLogin) {
-        final UserCredential userCredential =
+        final UserCredential userCredentials =
             await _firebase.signInWithEmailAndPassword(
                 email: _emailInput, password: _passwordInput);
       } else {
-        final UserCredential userCredential =
+        final UserCredential userCredentials =
             await _firebase.createUserWithEmailAndPassword(
                 email: _emailInput, password: _passwordInput);
+        final storageRef = FirebaseStorage.instance
+            .ref()
+            .child('user_images')
+            .child('${userCredentials.user!.uid}.jpg');
+        await storageRef.putFile(_selectedImage!);
+        final imageUrl = await storageRef.getDownloadURL();
+        print(imageUrl);
       }
     } on FirebaseAuthException catch (error) {
       ScaffoldMessenger.of(GlobalVariable.navState.currentContext!)
@@ -76,12 +99,18 @@ class _AuthScreenState extends State<AuthScreen> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          if (!_isLogin)
+                            UserImagePicker(
+                              onPickImage: (File image) {
+                                _selectedImage = image;
+                              },
+                            ),
                           TextFormField(
                             decoration: const InputDecoration(
                                 labelText: 'Email Adress'),
-                            keyboardType: TextInputType.emailAddress,
                             textCapitalization: TextCapitalization.none,
                             autocorrect: false,
+                            keyboardType: TextInputType.emailAddress,
                             validator: (value) {
                               if (value == null ||
                                   value.trim().isEmpty ||
